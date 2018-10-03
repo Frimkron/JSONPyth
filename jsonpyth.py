@@ -358,7 +358,7 @@ def jsonpath(obj, expr, result_type=RESULT_TYPE_VALUE, always_return_list=False)
     ...         { "name": "Bubbles", "age": 5 },
     ...     ]
     ... }
-    >>> jsonpath(data, "$,cats[*].name")
+    >>> jsonpath(data, "$.cats[*].name")
     ['Alfie', 'Bubbles']
     """
     result = evaluate(obj, parse(expr))

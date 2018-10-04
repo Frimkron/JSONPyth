@@ -23,4 +23,9 @@ setup(
     python_requires = '>=3.5',
     install_requires = requirements,
     test_suite='tests',
+    classifiers=[
+        "Programming Language :: Python :: 3 :: Only",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
 )

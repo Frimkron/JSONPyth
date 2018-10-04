@@ -11,7 +11,7 @@ with open('README.md', 'r') as f:
 setup(
     name='JSONPyth',
     version='0.1.0',
-    py_modules='jsonpyth',
+    py_modules=['jsonpyth'],
     author='Mark Frimston',
     author_email='mfrimston@gmail.com',
     description='A JSONPath implementation for Python',
@@ -19,7 +19,8 @@ setup(
     long_description_content_type='text/markdown',
     license='MIT',
     keywords='json jsonpath xpath query',
-    python_requires = '>=3.7',
+    url='https://github.com/Frimkron/JSONPyth',
+    python_requires = '>=3.5',
     install_requires = requirements,
     test_suite='tests',
 )

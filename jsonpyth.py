@@ -54,7 +54,7 @@ class _Parsed:
         if isinstance(obj, (list, tuple)):
             return [self.index_of(node,i) for i in range(len(obj))]
         elif isinstance(obj, dict):
-            return [self.property_of(node, k) for k in obj.keys()]
+            return [self.property_of(node, k) for k in sorted(obj.keys())]
         else:
             return []
 
@@ -180,12 +180,12 @@ class PExpression(_Parsed):
                 logging.warning('{} evaluating python expression script \"{}\": {}'
                                 .format(type(e).__name__, self.code, e))
                 continue
-            if isinstance(obj, (list, tuple)) and isinstance(key, (int, float)):
+            if isinstance(obj, (list, tuple)) and isinstance(key, (int, float)) and not isinstance(key, bool):
                 try:
                     retval.append(self.index_of(node, int(key)))
                 except IndexError as e:
                     logging.debug('{} {}'.format(type(e).__name__, str(e)))
-            elif isinstance(obj, dict):
+            elif isinstance(obj, dict) and isinstance(key, str):
                 try:
                     retval.append(self.property_of(node, str(key)))
                 except KeyError as e:

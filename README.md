@@ -1,5 +1,8 @@
 # JSONPyth #
 
+[![Build Status](https://travis-ci.com/Frimkron/JSONPyth.svg?branch=master)](
+    https://travis-ci.com/Frimkron/JSONPyth)
+
 Another [JSONPath] implementation for Python.
 
 Supports:
@@ -113,8 +116,8 @@ Output:
 ### Python Expressions
 
 A JSONPath _script expression_ (enclosed in parentheses `(...)` ) can be used to
-evaluate a Python statement to provide a dictionary key or list index. The 
-resulting value will be converted using `str` or `int` as appropriate.
+evaluate a Python statement to provide a dictionary key as a string, or list 
+index as a number. Return values of other types will be ignored.
 
 As parentheses are used to delimit the expression, parentheses used in the 
 script itself must be escaped with a backslash `\`.
@@ -140,8 +143,8 @@ Output:
 jaffa cakes
 ```
 
-**NOTE** JSONPyth calls `eval` to evaluate Python script, and is _unsafe_ to use
-for JSONPath expressions from untrusted sources.
+**NOTE** JSONPyth calls `eval` to evaluate Python script, and so is **unsafe**
+to use for JSONPath expressions from untrusted sources.
 
 
 ### Python Filters

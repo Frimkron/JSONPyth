@@ -343,30 +343,6 @@ class TestParse(unittest.TestCase):
         with self.assertRaises(jp.JsonPathSyntaxError):
             jp.parse('$.foo,[bar]')
 
-#    def test_parses_multiple_targets_with_single_quoted_comma(self):
-#        result = jp.parse("$.foo','bar")
-#        self.assert_child_steps((jp.PRoot, (jp.PProperty, jp.PProperty)), result)
-#        self.assertEqual('foo', result[1].targets[0].name)
-#        self.assertEqual('bar', result[1].targets[1].name)
-#
-#    def test_parses_multiple_single_quoted_properties_with_single_quoted_comma(self):
-#        result = jp.parse("$.'foo'',''bar'")
-#        self.assert_child_steps((jp.PRoot, (jp.PProperty, jp.PProperty)), result)
-#        self.assertEqual('foo', result[1].targets[0].name)
-#        self.assertEqual('bar', result[1].targets[1].name)
-#
-#    def test_parses_multiple_targets_with_double_quoted_comma(self):
-#        result = jp.parse('$.foo","bar')
-#        self.assert_child_steps((jp.PRoot, (jp.PProperty, jp.PProperty)), result)
-#        self.assertEqual('foo', result[1].targets[0].name)
-#        self.assertEqual('bar', result[1].targets[1].name)
-#
-#    def test_parses_multiple_double_quoted_properties_with_double_quoted_comma(self):
-#        result = jp.parse('$."foo"",""bar"')
-#        self.assert_child_steps((jp.PRoot, (jp.PProperty, jp.PProperty)), result)
-#        self.assertEqual('foo', result[1].targets[0].name)
-#        self.assertEqual('bar', result[1].targets[1].name)
-        
     # slices
 
     def test_parses_simple_index(self):
@@ -706,15 +682,15 @@ class TestEvaluate(unittest.TestCase):
 
     # wildcards                 
                           
-    def test_evaluates_wildcard_child_for_dict(self):
-        result = jp.evaluate({"a":1,"b":2,"c":[3,4]},
+    def test_evaluates_wildcard_child_for_dict_in_sort_order(self):
+        result = jp.evaluate({"a":1,"c":[3,4],"b":2,},
                              [jp.PChild(targets=[jp.PWildcard()])] )
         self.assertEqual([( 1, '$["a"]' ), ( 2, '$["b"]' ), ( [3,4], '$["c"]' )], result)
 
-    def test_evaluates_wildcard_child_for_sequence(self):
-        result = jp.evaluate([1, 2, [3,4]],
+    def test_evaluates_wildcard_child_for_sequence_in_sequence_order(self):
+        result = jp.evaluate([2,1,[3,4]],
                              [jp.PChild(targets=[jp.PWildcard()])] )
-        self.assertEqual([(1, '$[0]'), (2, '$[1]'), ([3,4], '$[2]')], result)
+        self.assertEqual([(2, '$[0]'), (1, '$[1]'), ([3,4], '$[2]')], result)
 
     def test_evaluates_wildcard_mid_path(self):
         result = jp.evaluate({"a":1,"b":[{"i":1,"ii":2},{"i":3,"ii":4},{"i":5,"ii":6}]},
@@ -804,21 +780,34 @@ class TestEvaluate(unittest.TestCase):
 
     # recursive steps
 
-    def test_evaluates_recursive_step(self):
+    def test_evaluates_recursive_step_in_top_down_order(self):
+        result = jp.evaluate({"a":{"a":{"a":1}}},
+                             [jp.PRecursive(targets=[jp.PProperty(name='a')])] )
+        self.assertEqual([({"a":{"a":1}},'$["a"]'), ({"a":1}, '$["a"]["a"]'), 
+                          (1, '$["a"]["a"]["a"]')], result) 
+
+    def test_evaluates_recursive_step_breadth_first(self):
+        result = jp.evaluate([[9,8,7],[6,5,4],[3,2,1]],
+                              [jp.PRecursive(targets=[jp.PSlice(start=1)])] )
+        self.assertEqual([([6,5,4], '$[1]'), ([3,2,1], '$[2]'), 
+                          (8, '$[0][1]'), (7, '$[0][2]'),
+                          (5, '$[1][1]'), (4, '$[1][2]'), 
+                          (2, '$[2][1]'), (1, '$[2][2]')], result)
+
+    def test_evaluates_properties_in_sort_order_for_recursive_step(self):
         result = jp.evaluate({"c":{"a":{"a":1},"b":2},"b":[{"a":2},4],"a":0},
                              [jp.PRecursive(targets=[jp.PProperty(name='a')])] )
-        self.assertEqual([(0, '$["a"]'), ({"a":1}, '$["c"]["a"]'), (1, '$["c"]["a"]["a"]'), 
-                          (2, '$["b"][0]["a"]')], result)
+        self.assertEqual([(0, '$["a"]'), ({"a":1}, '$["c"]["a"]'), (2, '$["b"][0]["a"]'),
+                          (1, '$["c"]["a"]["a"]')], result)
 
     def test_evaluates_recursive_step_with_multiple_targets(self):
         result = jp.evaluate({"c":{"a":{"a":1},"b":2},"b":[{"a":2},4],"a":0},
                              [jp.PRecursive(targets=[jp.PProperty(name='a'),jp.PProperty(name='b')])] )
         self.assertEqual([(0, '$["a"]'), ([{"a":2},4], '$["b"]'), ({"a":1}, '$["c"]["a"]'), 
-                          (2, '$["c"]["b"]'), (1, '$["c"]["a"]["a"]'),
-                          (2, '$["b"][0]["a"]')], result)
+                          (2, '$["c"]["b"]'), (2, '$["b"][0]["a"]'), (1, '$["c"]["a"]["a"]')], result)
 
     def test_evaluates_nested_recursive_steps(self):
-        result = jp.evaluate({"a":{"a":{"b":1},"b":3},"b":{"a":{"a":5,"b":{"b":2}},"b":4}},
+        result = jp.evaluate({"b":{"b":4,"a":{"b":{"b":2},"a":5}},"a":{"b":3,"a":{"b":1}}},
                              [jp.PRecursive(targets=[jp.PProperty(name='a')]),
                               jp.PRecursive(targets=[jp.PProperty(name='b')])])
         self.assertEqual([(3, '$["a"]["b"]'), (1, '$["a"]["a"]["b"]'), 
@@ -837,15 +826,20 @@ class TestEvaluate(unittest.TestCase):
                              [jp.PChild(targets=[jp.PExpression(code='1')])] )
         self.assertEqual([(2, '$[1]')], result)
     
-    def test_evaluates_non_string_expression_for_key(self):
-        result = jp.evaluate({"True":1, "False":2, "None":3},
-                             [jp.PChild(targets=[jp.PExpression(code='True')])] )
-        self.assertEqual([(1, '$["True"]')], result)
+    def test_ignores_non_string_expression_for_key(self):
+        result = jp.evaluate({"11":1, "101":2, "1001":3},
+                             [jp.PChild(targets=[jp.PExpression(code='101')])] )
+        self.assertEqual([], result)
 
-    def test_evaluates_non_int_expression_for_index(self):
+    def test_ignores_non_numeric_expression_for_index(self):
         result = jp.evaluate([1,2,3],
-                             [jp.PChild(targets=[jp.PExpression(code='False')])] )
-        self.assertEqual([(1, '$[0]')], result)
+                             [jp.PChild(targets=[jp.PExpression(code='"2"')])] )
+        self.assertEqual([], result)
+
+    def test_ignores_non_numeric_expression_for_index_even_if_bool(self):
+        result = jp.evaluate([1,2,3],
+                             [jp.PChild(targets=[jp.PExpression(code='True')])] )
+        self.assertEqual([], result)
 
     def test_evaluates_operators_in_expression(self):
         result = jp.evaluate([1,2,3,4,5],
@@ -912,36 +906,6 @@ class TestEvaluate(unittest.TestCase):
         result = jp.evaluate({'\\\\__root':1,'~':2},
                              [jp.PChild(targets=[jp.PExpression(code='"\\\\\\\\$"')])] )
         self.assertEqual([(1, '$["\\\\\\\\__root"]')], result)
-
-#    def test_doesnt_replace_at_symbol_in_single_string(self):
-#        result = jp.evaluate({"@":1,"~":2},
-#                             [jp.PChild(targets=[jp.PExpression(code="'@'")])] )
-#        self.assertEqual([(1, '$["@"]')], result)
-#
-#    def test_doesnt_replace_at_symbol_in_double_string(self):
-#        result = jp.evaluate({"@":1,"~":2},
-#                             [jp.PChild(targets=[jp.PExpression(code='"@"')])] )
-#        self.assertEqual([(1, '$["@"]')], result)
-#
-#    def test_doesnt_replace_at_symbol_in_triple_string(self):
-#        result = jp.evaluate({"@":1, "~":2},
-#                             [jp.PChild(targets=[jp.PExpression(code='"""@"""')])] )
-#        self.assertEqual([(1, '$["@"]')], result)
-#
-#    def test_doesnt_replace_at_symbol_in_multiline_triple_string(self): 
-#        result = jp.evaluate({'\n@\n':1, '~':2},
-#                             [jp.PChild(targets=[jp.PExpression(code='"""\\n@\\n"""')])] )
-#        self.assertEqual([(1, '$["\\n@\\n"]')], result)
-#
-#    def test_doesnt_replace_at_symbol_in_double_string_with_escaped_quote(self):
-#        result = jp.evaluate({'"+str(len(@))+"':1, "~":2},
-#                             [jp.PChild(targets=[jp.PExpression(code='"\\"+str(len(@))+\\""')])] )
-#        self.assertEqual([(1, '$["\\"+str(len(@))+\\""]')], result)
-#
-#    def test_evaluates_expression_with_current_node_near_double_escaped_string_delimiter(self):
-#        result = jp.evaluate({'\\2\\': 1, '~':2},
-#                             [jp.PChild(targets=[jp.PExpression(code='"\\\\"+str(len(@))+"\\\\"')])] )
-#        self.assertEqual([(1, '$["\\\\2\\\\"]')], result)
 
     # filters
 
@@ -1056,6 +1020,13 @@ class TestEvaluate(unittest.TestCase):
                               jp.PChild(targets=[jp.PWildcard()])] )
         self.assertEqual([
                 (
+                    {
+                        "color": "red",
+                        "price": 19.95,
+                    },
+                    '$["store"]["bicycle"]'
+                ),
+                (
                     [
                         {
                             "category": "reference",
@@ -1085,13 +1056,6 @@ class TestEvaluate(unittest.TestCase):
                         },
                     ],
                     '$["store"]["book"]'
-                ),
-                (
-                    {
-                        "color": "red",
-                        "price": 19.95,
-                    },
-                    '$["store"]["bicycle"]'
                 )
             ], result)
 

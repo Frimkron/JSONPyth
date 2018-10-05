@@ -125,7 +125,10 @@ script itself must be escaped with a backslash `\`.
 The special symbols `@` (current node) and `$` (root node) will be substituted 
 for variables named `__current` and `__root` respectively, using a simple text 
 replacement before the statement is evaluated. To use a literal `@` or `$` in
-the script, it must be escaped with _two_ backslashes `\\`.
+the script, it must be escaped with _two_ backslashes `\\`. Note that a string 
+literal will recognise `\\` as an escaped backslash; in such a case each 
+backslash must be further escaped (`"\\\\@"`) or else a raw literal used 
+(`r"\\@"`).
 
 An example script expression:
 

@@ -3,9 +3,6 @@
 from setuptools import setup, find_packages
 
 
-with open('requirements.txt', 'r') as f:
-    requirements = [l.strip() for l in f.readlines()]
-
 with open('README.md', 'r') as f:
     long_description = f.read()
 
@@ -22,8 +19,8 @@ setup(
     license='MIT',
     keywords='json jsonpath xpath query',
     url='https://github.com/Frimkron/JSONPyth',
-    python_requires = '>=3.5',
-    install_requires = requirements,
+    python_requires='>=3.5',
+    install_requires=['pyparsing>=2.2.2'],
     test_suite='tests',
     classifiers=[
         "Programming Language :: Python :: 3 :: Only",

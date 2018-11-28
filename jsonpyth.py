@@ -1,7 +1,6 @@
 import re
 import logging
-from pyparsing import Word, nums, alphas, alphanums, sglQuotedString, dblQuotedString, Combine, Literal, \
-                      QuotedString, Group, delimitedList, Suppress, ParseException
+import pyparsing as pp
 
 
 class ParseError(Exception):
@@ -225,52 +224,52 @@ def _token_printer(name):
     return print_tokens
 
 
-_ROOT = Literal('$') \
+_ROOT = pp.Literal('$') \
                 .setParseAction(PRoot)
 
-_CURRENT = Literal('@') \
+_CURRENT = pp.Literal('@') \
                 .setParseAction(PCurrent)
 
-_WILDCARD = Literal('*') \
+_WILDCARD = pp.Literal('*') \
                 .setParseAction(PWildcard)
 
-_NAME = Word( alphas+"_", alphanums+"_" ) \
+_NAME = pp.Word( pp.alphas+"_", pp.alphanums+"_" ) \
                 .setName('name')
 
 _PROPERTY = ( _NAME 
-                    | QuotedString('"','\\',None,False,True)
-                    | QuotedString("'",'\\',None,False,True) ) \
+                    | pp.QuotedString('"','\\',None,False,True)
+                    | pp.QuotedString("'",'\\',None,False,True) ) \
                 .setResultsName('name').setParseAction(PProperty).setName('property')
 
-_INTEGER = Combine( Literal("-")*(0,1) + Word( nums ) ) \
+_INTEGER = pp.Combine( pp.Literal("-")*(0,1) + pp.Word( pp.nums ) ) \
                 .setParseAction(lambda t: int(t[0])).setName('integer')
 
 _SLICE = ( _INTEGER.setResultsName('start')*(0,1) 
                 + ':' + _INTEGER.setResultsName('end')*(0,1)
-                + ( Literal(':') + _INTEGER.setResultsName('step')*(0,1) )*(0,1)
+                + ( pp.Literal(':') + _INTEGER.setResultsName('step')*(0,1) )*(0,1)
             | _INTEGER.setResultsName('index') ) \
                 .setParseAction(PSlice).setName('slice')
 
-_EXPRESSION = QuotedString('(','\\',None,False,True,')') \
+_EXPRESSION = pp.QuotedString('(','\\',None,False,True,')') \
                 .setResultsName('code').setParseAction(PExpression).setName('script expression')
 
-_FILTER = QuotedString('?(','\\',None,False,True,')') \
+_FILTER = pp.QuotedString('?(','\\',None,False,True,')') \
                 .setResultsName('code').setParseAction(PFilter).setName('script filter')
 
 _TARGET = ( _ROOT | _CURRENT | _WILDCARD | _PROPERTY | _SLICE | _EXPRESSION | _FILTER ) \
                 .setName('target')
 
-_TARGET_SET = Group(delimitedList( _TARGET, ',' )) \
+_TARGET_SET = pp.Group(pp.delimitedList( _TARGET, ',' )) \
                 .setName('target set')
 
 _IMPLICIT_CHILD = _TARGET_SET \
                 .setResultsName('targets').setParseAction(PChild)
 
-_CHILD = ( Literal(".") + _TARGET_SET.setResultsName('targets') 
-            | Literal('[') + _TARGET_SET.setResultsName('targets') + ']' ) \
+_CHILD = ( pp.Literal(".") + _TARGET_SET.setResultsName('targets') 
+            | pp.Literal('[') + _TARGET_SET.setResultsName('targets') + ']' ) \
                 .setParseAction(PChild).setName('child step')
 
-_RECURSIVE = ( Literal("..") + _TARGET_SET.setResultsName('targets') ) \
+_RECURSIVE = ( pp.Literal("..") + _TARGET_SET.setResultsName('targets') ) \
                 .setParseAction(PRecursive).setName('recurse step')
 
 _STEP = _CHILD | _RECURSIVE
@@ -297,7 +296,7 @@ def parse(string):
     """
     try:
         return _PATH.parseString(string, True)
-    except ParseException as e:
+    except pp.ParseException as e:
         raise JsonPathSyntaxError(e.line, e.col, e.msg) from e
 
 
